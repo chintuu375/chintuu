@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Flappy Bird — Bigger Bird</title>
+<style>
+    body {
+        margin: 0;
+        background-image: url(school.jpg);
+        background-repeat: no-repeat;
+        background-size: cover;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+    canvas {
+        background: #4db4ff;
+        border: 3px solid #000;
+    }
+</style>
+</head>
+<body>
+
+<canvas id="game" width="400" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// Load assets
+const birdImg = new Image();
+birdImg.src = "sir.jpg"; // Replace with your bird image
+
+const dieSound = new Audio("1203.mp3"); // Replace with your sound
+const boomImg = new Image();
+boomImg.src = "boom.jpg"; // Replace with your boom image
+
+// Bird properties — increased size
+let bird = { x: 80, y: 250, w: 80, h: 80, vy: 0, gravity: 0.5, jump: -8 };
+
+// Pipes
+let pipes = [];
+let pipeGap = 220; // slightly bigger gap for bigger bird
+let pipeWidth = 60;
+let pipeSpeed = 2;
+
+// Game status
+let score = 0;
+let gameOver = false;
+let boomX = 0;
+let boomY = 0;
+
+// -------------------
+// FUNCTIONS
+// -------------------
+function resetGame() {
+    bird.y = 250;
+    bird.vy = 0;
+    pipes = [];
+    score = 0;
+    gameOver = false;
+}
+
+function createPipe() {
+    let topHeight = Math.random() * (canvas.height - pipeGap - 100) + 50;
+    pipes.push({ x: canvas.width, top: topHeight, bottom: topHeight + pipeGap });
+}
+
+// Game update
+function update() {
+    if (!gameOver) {
+        // Bird physics
+        bird.vy += bird.gravity;
+        bird.y += bird.vy;
+
+        // Spawn pipes
+        if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) createPipe();
+
+        // Move pipes
+        pipes.forEach(p => p.x -= pipeSpeed);
+
+        // Remove pipes & score
+        if (pipes[0] && pipes[0].x + pipeWidth < 0) {
+            pipes.shift();
+            score++;
+        }
+
+        // Collision detection
+        pipes.forEach(p => {
+            if (bird.x + bird.w > p.x && bird.x < p.x + pipeWidth) {
+                if (bird.y < p.top || bird.y + bird.h > p.bottom) triggerGameOver();
+            }
+        });
+
+        // Ground / sky collision
+        if (bird.y + bird.h >= canvas.height || bird.y <= 0) triggerGameOver();
+    }
+}
+
+// Trigger Game Over
+function triggerGameOver() {
+    if (!gameOver) {
+        dieSound.play();
+        boomX = bird.x + bird.w / 2; // center of bird
+        boomY = bird.y + bird.h / 2;
+        gameOver = true;
+        bird.vy = 0; // stop bird
+    }
+}
+
+// Draw
+function draw() {
+    ctx.fillStyle = "#4db4ff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Pipes
+    ctx.fillStyle = "green";
+    pipes.forEach(p => {
+        ctx.fillRect(p.x, 0, pipeWidth, p.top);
+        ctx.fillRect(p.x, p.bottom, pipeWidth, canvas.height - p.bottom);
+    });
+
+    // Bird
+    if (!gameOver) {
+        ctx.drawImage(birdImg, bird.x, bird.y, bird.w, bird.h);
+    }
+
+    // Boom effect
+    if (gameOver) {
+        ctx.drawImage(boomImg, boomX - 50, boomY - 50, 100, 100); // bigger explosion
+    }
+
+    // Score
+    ctx.fillStyle = "black";
+    ctx.font = "30px Arial";
+    ctx.fillText(score, 20, 40);
+
+    // Game over text
+    if (gameOver) {
+        ctx.fillStyle = "rgba(0,0,0,0.4)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.font = "30px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
+        ctx.font = "20px Arial";
+        ctx.fillText("Press SPACE or Click to Restart", canvas.width / 2, canvas.height / 2 + 40);
+    }
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+// Controls
+window.addEventListener("keydown", e => {
+    if (e.code === "Space") {
+        if (gameOver) resetGame();
+        else bird.vy = bird.jump;
+    }
+});
+window.addEventListener("mousedown", () => {
+    if (gameOver) resetGame();
+    else bird.vy = bird.jump;
+});
+
+loop();
+</script>
+</body>
+</html>
